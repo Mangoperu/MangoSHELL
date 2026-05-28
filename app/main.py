@@ -20,6 +20,30 @@ def getpath(cmnd): #to check for executable file in PATH variables
 def run_exit():
     sys.exit(0)
 
+def outinfile(args , index ,comms):
+    original_stdout = sys.stdout 
+    filename = args[index+1]
+    cmnd  = args[0]
+    args = args[1:index]
+    with open(filename, "w") as f:
+        sys.stdout = f
+        if cmnd in comms:
+            if cmnd == "type":
+                comms["type"](args, comms)
+            elif cmnd == "exit":
+                comms["exit"]() 
+            else:
+                comms[cmnd](args)
+        
+        else:
+            
+                if getpath(cmnd) :
+                    subprocess.run( args, executable=getpath(cmnd) , stdout=f) 
+                else:
+                    print(f"{cmnd}: command not found")
+    sys.stdout = original_stdout
+    
+
 
 
 def run_cwd(arg):
@@ -63,10 +87,23 @@ def main():
         command = input().strip()
         if not command:
             continue
-        parts = shlex.split(command)
+        parts = shlex.split(command) # split in a way that normal shell uses like taking care of ' " " / $                                                                                                                                  
         cmnd = parts[0]
         args = parts[1:]
 
+
+
+        if ">" in parts or "1>" in parts:
+            if ">" in parts:
+                index = parts.index(">")
+            else:
+                index  = parts.index("1>")
+            outinfile(parts , index , comms)
+            continue
+        
+
+
+             
         if cmnd in comms:
             if cmnd == "type":
                 comms["type"](args, comms)
@@ -77,7 +114,7 @@ def main():
         else:
 
             if getpath(cmnd) :
-                subprocess.run(parts, executable=getpath(cmnd))
+                subprocess.run( parts , executable=getpath(cmnd))
             else:
                 print(f"{command}: command not found")
         
