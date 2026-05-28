@@ -24,26 +24,103 @@ def outinfile(args , index ,comms):
     original_stdout = sys.stdout 
     filename = args[index+1]
     cmnd  = args[0]
-    args = args[1:index]
+    argbuil = args[1:index]
+    args = args[0:index]
     with open(filename, "w") as f:
         sys.stdout = f
         if cmnd in comms:
             if cmnd == "type":
-                comms["type"](args, comms)
+                comms["type"](argbuil, comms)
             elif cmnd == "exit":
                 comms["exit"]() 
             else:
-                comms[cmnd](args)
+                comms[cmnd](argbuil)
         
         else:
             
                 if getpath(cmnd) :
                     subprocess.run( args, executable=getpath(cmnd) , stdout=f) 
                 else:
-                    print(f"{cmnd}: command not found")
+                   print(f"{cmnd}: command not found")
+    sys.stdout = original_stdout
+
+
+
+def outinfileap(args , index ,comms):
+    original_stdout = sys.stdout 
+    filename = args[index+1]
+    cmnd  = args[0]
+    argbuil = args[1:index]
+    args = args[0:index]
+    with open(filename, "a") as f:
+        sys.stdout = f
+        if cmnd in comms:
+            if cmnd == "type":
+                comms["type"](argbuil, comms)
+            elif cmnd == "exit":
+                comms["exit"]() 
+            else:
+                comms[cmnd](argbuil)
+        
+        else:
+            
+                if getpath(cmnd) :
+                    subprocess.run( args, executable=getpath(cmnd) , stdout=f) 
+                else:
+                   print(f"{cmnd}: command not found")
     sys.stdout = original_stdout
     
+def stderr(args, index, comms):
+    filename = args[index+1]
+    cmnd = args[0]
+    argbuil = args[1:index]
+    cmd_args = args[0:index]
 
+    if cmnd in comms:
+        original_stderr = sys.stderr
+        with open(filename, "w") as f:  # ← always creates the file
+            sys.stderr = f
+            if cmnd == "type":
+                comms["type"](argbuil, comms)
+            elif cmnd == "exit":
+                comms["exit"]()
+            else:
+                comms[cmnd](argbuil)
+            sys.stderr = original_stderr  # ← restore inside the with block
+    else:
+        if getpath(cmnd):
+            with open(filename, "w") as f:
+                subprocess.run(cmd_args, executable=getpath(cmnd), stderr=f)
+        else:
+            with open(filename, "w") as f:
+                f.write(f"{cmnd}: command not found\n")
+
+
+
+def stderrap(args, index, comms):
+    filename = args[index+1]
+    cmnd = args[0]
+    argbuil = args[1:index]
+    cmd_args = args[0:index]
+
+    if cmnd in comms:
+        original_stderr = sys.stderr
+        with open(filename, "a") as f:  #always creates the file
+            sys.stderr = f
+            if cmnd == "type":
+                comms["type"](argbuil, comms)
+            elif cmnd == "exit":
+                comms["exit"]()
+            else:
+                comms[cmnd](argbuil)
+            sys.stderr = original_stderr  #restore inside the with block
+    else:
+        if getpath(cmnd):
+            with open(filename, "a") as f:
+                subprocess.run(cmd_args, executable=getpath(cmnd), stderr=f)
+        else:
+            with open(filename, "a") as f:
+                f.write(f"{cmnd}: command not found\n")
 
 
 def run_cwd(arg):
@@ -101,7 +178,22 @@ def main():
             outinfile(parts , index , comms)
             continue
         
+        if ">>" in parts or "1>>" in parts:
+            if ">>" in parts:
+                index = parts.index(">>")
+            else:
+                index  = parts.index("1>>")
+            outinfileap(parts , index , comms)
+            continue        
 
+        if "2>" in parts:
+            index = parts.index("2>")
+            stderr(parts , index , comms)
+            continue
+        if "2>>" in parts:
+            index = parts.index("2>>")
+            stderrap(parts , index , comms)
+            continue
 
              
         if cmnd in comms:
